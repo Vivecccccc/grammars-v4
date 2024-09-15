@@ -18,7 +18,8 @@
 				<configuration>
 					<sourceDirectory>${basedir}</sourceDirectory>
 					<includes>
-					   <include>Python3.g4</include>
+						<include>Python3Lexer.g4</include>
+						<include>Python3Parser.g4</include>
 					</includes>
 					<visitor>true</visitor>
 					<listener>true</listener>
@@ -41,7 +42,7 @@
 					<entryPoint>file_input</entryPoint>
 					<grammarName>Python3</grammarName>
 					<packageName></packageName>
-					<exampleFiles>examples/</exampleFiles>
+					<exampleFiles>large/</exampleFiles>
 				</configuration>
 				<executions>
 					<execution>

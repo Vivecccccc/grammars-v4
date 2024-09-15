@@ -36,9 +36,9 @@
 				<artifactId>antlr4test-maven-plugin</artifactId>
 				<version>${antlr4test-maven-plugin.version}</version>
 				<configuration>
-					<verbose>true</verbose>
-					<showTree>true</showTree>
-					<entryPoint>statement</entryPoint>
+					<verbose>false</verbose>
+					<showTree>false</showTree>
+					<entryPoint>file_</entryPoint>
 					<grammarName>matlab</grammarName>
 					<packageName></packageName>
 					<exampleFiles>examples/</exampleFiles>

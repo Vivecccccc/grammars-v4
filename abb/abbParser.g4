@@ -1,6 +1,11 @@
+// $antlr-format alignTrailingComments true, columnLimit 150, minEmptyLines 1, maxEmptyLinesToKeep 1, reflowComments false, useTab false
+// $antlr-format allowShortRulesOnASingleLine false, allowShortBlocksOnASingleLine true, alignSemicolons hanging, alignColons hanging
+
 parser grammar abbParser;
 
-options { tokenVocab = abbLexer; }
+options {
+    tokenVocab = abbLexer;
+}
 
 /*
     This grammar is still in development.
@@ -26,15 +31,12 @@ Star stands for: zero or more
 
 */
 
-module
+module_
     : moduleData EOF
     ;
 
 moduleData
-    : MODULE moduleName NEWLINE
-      dataList
-      NEWLINE*
-      ENDMODULE
+    : MODULE moduleName NEWLINE dataList NEWLINE* ENDMODULE
     ;
 
 moduleName
@@ -43,15 +45,11 @@ moduleName
     ;
 
 dataList
-    : (NEWLINE
-    | declaration NEWLINE
-    | procedure NEWLINE)*
+    : (NEWLINE | declaration NEWLINE | procedure NEWLINE)*
     ;
 
 procedure
-    : PROC procCall NEWLINE
-      (functionCall NEWLINE)*
-    ENDPROC
+    : PROC procCall NEWLINE (functionCall NEWLINE)* ENDPROC
     ;
 
 procCall
@@ -78,22 +76,28 @@ functionParameter
     ;
 
 declaration
-    : init type_ IDENTIFIER (EQUALS expression)? SEMICOLON
+    : init_ type_ IDENTIFIER (EQUALS expression)? SEMICOLON
     ;
 
 type_
-    : ( TOOLDATA | WOBJDATA | SPEEDDATA | ZONEDATA | CLOCK | BOOL )
+    : TOOLDATA
+    | WOBJDATA
+    | SPEEDDATA
+    | ZONEDATA
+    | CLOCK
+    | BOOL
     ;
 
-init
-    : LOCAL? ( CONST | PERS | VAR )
+init_
+    : LOCAL? (CONST | PERS | VAR)
     ;
 
 expression
-    : array | primitive
+    : array_
+    | primitive
     ;
 
-array
+array_
     : SQUARE_OPEN (expression COMMA)* expression SQUARE_CLOSE
     ;
 

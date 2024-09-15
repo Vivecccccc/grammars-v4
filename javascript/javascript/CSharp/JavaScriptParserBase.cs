@@ -49,36 +49,18 @@ public abstract class JavaScriptParserBase : Parser
 
     protected bool notLineTerminator()
     {
-        return !here(LineTerminator);
+        return !lineTerminatorAhead();
     }
 
     protected bool notOpenBraceAndNotFunction()
     {
         int nextTokenType = ((ITokenStream)this.InputStream).LT(1).Type;
-        return nextTokenType != OpenBrace && nextTokenType != Function;
+        return nextTokenType != OpenBrace && nextTokenType != Function_;
     }
 
     protected bool closeBrace()
     {
         return ((ITokenStream)this.InputStream).LT(1).Type == CloseBrace;
-    }
-
-    /// <summary>Returns true if on the current index of the parser's
-    /// token stream a token of the given type exists on the
-    /// Hidden channel.
-    /// </summary>
-    /// <param name="type">
-    /// The type of the token on the Hidden channel to check.
-    /// </param>
-    protected bool here(int type)
-    {
-        // Get the token ahead of the current index.
-        int possibleIndexEosToken = CurrentToken.TokenIndex - 1;
-        IToken ahead = ((ITokenStream)this.InputStream).Get(possibleIndexEosToken);
-
-        // Check if the token resides on the Hidden channel and if it's of the
-        // provided type.
-        return ahead.Channel == Lexer.Hidden && ahead.Type == type;
     }
 
     /// <summary>
@@ -91,6 +73,7 @@ public abstract class JavaScriptParserBase : Parser
     {
         // Get the token ahead of the current index.
         int possibleIndexEosToken = CurrentToken.TokenIndex - 1;
+        if (possibleIndexEosToken < 0) return false;
         IToken ahead = ((ITokenStream)this.InputStream).Get(possibleIndexEosToken);
 
         if (ahead.Channel != Lexer.Hidden)
@@ -109,6 +92,7 @@ public abstract class JavaScriptParserBase : Parser
         {
             // Get the token ahead of the current whitespaces.
             possibleIndexEosToken = CurrentToken.TokenIndex - 2;
+            if (possibleIndexEosToken < 0) return false;
             ahead = ((ITokenStream)this.InputStream).Get(possibleIndexEosToken);
         }
 

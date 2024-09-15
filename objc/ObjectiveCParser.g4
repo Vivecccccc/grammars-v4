@@ -26,9 +26,14 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
 
+// $antlr-format alignTrailingComments true, columnLimit 150, minEmptyLines 1, maxEmptyLinesToKeep 1, reflowComments false, useTab false
+// $antlr-format allowShortRulesOnASingleLine false, allowShortBlocksOnASingleLine true, alignSemicolons hanging, alignColons hanging
+
 parser grammar ObjectiveCParser;
 
-options { tokenVocab=ObjectiveCLexer; }
+options {
+    tokenVocab = ObjectiveCLexer;
+}
 
 translationUnit
     : topLevelDeclaration* EOF
@@ -46,6 +51,7 @@ topLevelDeclaration
     | protocolDeclarationList
     | classDeclarationList
     | functionDefinition
+    | ';'
     ;
 
 importDeclaration
@@ -53,42 +59,43 @@ importDeclaration
     ;
 
 classInterface
-    : IB_DESIGNABLE?
-      '@interface'
-       className=genericTypeSpecifier (':' superclassName=identifier)? (LT protocolList GT)? instanceVariables? interfaceDeclarationList?
-      '@end'
+    : IB_DESIGNABLE? '@interface' className = genericTypeSpecifier (
+        ':' superclassName = identifier
+    )? (LT (protocolList | genericConformanceList) GT)* instanceVariables? interfaceDeclarationList? '@end'
     ;
 
 categoryInterface
-    : '@interface'
-       categoryName=genericTypeSpecifier LP className=identifier? RP (LT protocolList GT)? instanceVariables? interfaceDeclarationList?
-      '@end'
+    : '@interface' className = genericTypeSpecifier LP categoryName = identifier? RP (
+        LT protocolList GT
+    )? instanceVariables? interfaceDeclarationList? '@end'
     ;
 
 classImplementation
-    : '@implementation'
-       className=genericTypeSpecifier (':' superclassName=identifier)? instanceVariables? implementationDefinitionList?
-      '@end'
+    : '@implementation' className = genericTypeSpecifier (':' superclassName = identifier)? instanceVariables? implementationDefinitionList? '@end'
     ;
 
 categoryImplementation
-    : '@implementation'
-       categoryName=genericTypeSpecifier LP className=identifier RP implementationDefinitionList?
-      '@end'
+    : '@implementation' className = genericTypeSpecifier LP categoryName = identifier RP implementationDefinitionList? '@end'
     ;
 
 genericTypeSpecifier
-    : identifier ((LT protocolList GT) | genericsSpecifier)?
+    : identifier (LT (protocolList | genericConformanceList) GT)?
+    ;
+
+genericConformanceList
+    : genericConformance (',' genericConformance)*
+    ;
+
+genericConformance
+    : genericsType = declarationSpecifiers (':' genericsParentType = declarationSpecifiers)?
     ;
 
 protocolDeclaration
-    : '@protocol'
-       protocolName (LT protocolList GT)? protocolDeclarationSection*
-      '@end'
+    : macro? '@protocol' protocolName (LT protocolList GT)? protocolDeclarationSection* '@end'
     ;
 
 protocolDeclarationSection
-    : modifier=(REQUIRED | OPTIONAL) interfaceDeclarationList*
+    : modifier = (REQUIRED | OPTIONAL) interfaceDeclarationList*
     | interfaceDeclarationList+
     ;
 
@@ -97,7 +104,7 @@ protocolDeclarationList
     ;
 
 classDeclarationList
-    : '@class' identifier (',' identifier)* ';'
+    : '@class' genericTypeSpecifier (',' genericTypeSpecifier)* ';'
     ;
 
 protocolList
@@ -131,7 +138,7 @@ propertyAttribute
 
 protocolName
     : LT protocolList GT
-    | ('__covariant' | '__contravariant')?  identifier
+    | ('__covariant' | '__contravariant')? identifier
     ;
 
 instanceVariables
@@ -151,11 +158,14 @@ accessModifier
     ;
 
 interfaceDeclarationList
-    : (declaration
-    | classMethodDeclaration
-    | instanceMethodDeclaration
-    | propertyDeclaration
-    | functionDeclaration)+
+    : (
+        declaration
+        | classMethodDeclaration
+        | instanceMethodDeclaration
+        | propertyDeclaration
+        | functionDeclaration
+        | ';'
+    )+
     ;
 
 classMethodDeclaration
@@ -167,16 +177,18 @@ instanceMethodDeclaration
     ;
 
 methodDeclaration
-    : methodType? methodSelector macro? ';'
+    : methodType? methodSelector macro* ';'
     ;
 
 implementationDefinitionList
-    : (functionDefinition
-    | declaration
-    | classMethodDefinition
-    | instanceMethodDefinition
-    | propertyImplementation
-    )+;
+    : (
+        functionDefinition
+        | declaration
+        | classMethodDefinition
+        | instanceMethodDefinition
+        | propertyImplementation
+    )+
+    ;
 
 classMethodDefinition
     : '+' methodDefinition
@@ -222,15 +234,12 @@ propertySynthesizeItem
     ;
 
 blockType
-    : nullabilitySpecifier? typeSpecifier nullabilitySpecifier? LP '^' (nullabilitySpecifier | typeSpecifier)? RP blockParameters?
+    : NS_NOESCAPE? nullabilitySpecifier? typeSpecifier nullabilitySpecifier? LP NS_NOESCAPE? '^'
+        nullabilitySpecifier? RP blockParameters?
     ;
-
+    
 genericsSpecifier
-    : LT (typeSpecifierWithPrefixes (',' typeSpecifierWithPrefixes)*)? GT
-    ;
-
-typeSpecifierWithPrefixes
-    : typePrefix* typeSpecifier
+    : genericsType = typeSpecifier (':' genericsConformanceType = typeSpecifier)?
     ;
 
 dictionaryExpression
@@ -291,6 +300,7 @@ selectorExpression
 
 selectorName
     : selector
+    | UNDERSCORE
     | (selector? ':')+
     ;
 
@@ -312,7 +322,9 @@ throwStatement
     ;
 
 tryBlock
-    : '@try' tryStatement=compoundStatement catchStatement* ('@finally' finallyStatement=compoundStatement)?
+    : '@try' tryStatement = compoundStatement catchStatement* (
+        '@finally' finallyStatement = compoundStatement
+    )?
     ;
 
 catchStatement
@@ -368,45 +380,45 @@ attributeParameterAssignment
     ;
 
 declaration
-    : functionCallExpression
-    | enumDeclaration
-    | varDeclaration
-    | typedefDeclaration
+    : (
+        functionCallExpression
+        | enumDeclaration
+        | varDeclaration
+        | typedefDeclaration
+    ) macro? ';'
     ;
 
 functionCallExpression
-    : attributeSpecifier? identifier attributeSpecifier? LP directDeclarator RP ';'
+    : attributeSpecifier? identifier attributeSpecifier? LP declarator RP
     ;
 
 enumDeclaration
-    : attributeSpecifier? TYPEDEF? enumSpecifier identifier? ';'
+    : attributeSpecifier? TYPEDEF? (enumSpecifier identifier | nsEnumOrOptionSpecifier)
     ;
 
 varDeclaration
-    : (declarationSpecifiers initDeclaratorList | declarationSpecifiers) ';'
+    : declarationSpecifiers initDeclaratorList?
     ;
 
 typedefDeclaration
-    : attributeSpecifier? TYPEDEF (declarationSpecifiers typeDeclaratorList | declarationSpecifiers) ';'
+    : attributeSpecifier? TYPEDEF declarationSpecifiers typeDeclaratorList?
     ;
 
 typeDeclaratorList
-    : typeDeclarator (',' typeDeclarator)*
-    ;
-
-typeDeclarator
-    : pointer? directDeclarator
+    : declarator (',' declarator)*
     ;
 
 declarationSpecifiers
-    : (storageClassSpecifier
-    | attributeSpecifier
-    | arcBehaviourSpecifier
-    | nullabilitySpecifier
-    | ibOutletQualifier
-    | typePrefix
-    | typeQualifier
-    | typeSpecifier)+
+    : (
+        storageClassSpecifier
+        | attributeSpecifier
+        | arcBehaviourSpecifier
+        | nullabilitySpecifier
+        | ibOutletQualifier
+        | NS_NOESCAPE
+        | typePrefix
+        | typeQualifier
+    )* typeSpecifier attributeSpecifier*
     ;
 
 attributeSpecifier
@@ -426,16 +438,7 @@ structOrUnionSpecifier
     ;
 
 fieldDeclaration
-    : specifierQualifierList fieldDeclaratorList macro? ';'
-    ;
-
-specifierQualifierList
-    : (arcBehaviourSpecifier
-    | nullabilitySpecifier
-    | ibOutletQualifier
-    | typePrefix
-    | typeQualifier
-    | typeSpecifier)+
+    : declarationSpecifiers fieldDeclaratorList macro? ';'
     ;
 
 ibOutletQualifier
@@ -489,22 +492,25 @@ protocolQualifier
     | 'byref'
     | 'oneway'
     ;
-
-typeSpecifier
-    : 'void'
-    | 'char'
-    | 'short'
-    | 'int'
+    
+typeSpecifierModifier
+    : 'short'
     | 'long'
-    | 'float'
-    | 'double'
     | 'signed'
     | 'unsigned'
+    ;
+
+typeSpecifier
+    : 'void' typeQualifier*
+    | typeSpecifierModifier* ('char' | 'short' | 'int' | 'long' | 'float' | 'double') typeQualifier*
     | typeofExpression
-    | genericTypeSpecifier
     | structOrUnionSpecifier
     | enumSpecifier
-    | identifier pointer?
+    | nsEnumOrOptionSpecifier
+    | 'id' (LT protocolList GT)? (arcBehaviourSpecifier | nullabilitySpecifier | typeQualifier)*
+    | genericTypeSpecifier (arcBehaviourSpecifier | nullabilitySpecifier | typeQualifier)*
+    | identifier (arcBehaviourSpecifier | nullabilitySpecifier | typeQualifier)*
+    | typeSpecifier '*' (arcBehaviourSpecifier | nullabilitySpecifier | typeQualifier)*
     ;
 
 typeofExpression
@@ -521,8 +527,14 @@ fieldDeclarator
     ;
 
 enumSpecifier
-    : 'enum' (identifier? ':' typeName)? (identifier ('{' enumeratorList '}')? | '{' enumeratorList '}')
-    | ('NS_OPTIONS' | 'NS_ENUM') LP typeName ',' identifier RP '{' enumeratorList '}'
+    : 'enum' (identifier? ':' typeName)? (
+        identifier ('{' enumeratorList '}')?
+        | '{' enumeratorList '}'
+    )
+    ;
+    
+nsEnumOrOptionSpecifier
+    : ('NS_OPTIONS' | 'NS_ENUM' | 'NS_CLOSED_ENUM' | 'NS_ERROR_ENUM') LP typeName ',' identifier RP ('{' enumeratorList '}')?
     ;
 
 enumeratorList
@@ -538,7 +550,7 @@ enumeratorIdentifier
     | 'default'
     ;
 
-directDeclarator
+declarator
     : (identifier | LP declarator RP) declaratorSuffix*
     | LP '^' nullabilitySpecifier? identifier? RP blockParameters
     ;
@@ -551,12 +563,52 @@ parameterList
     : parameterDeclarationList (',' '...')?
     ;
 
-pointer
-    : '*' declarationSpecifiers? pointer?
-    ;
-
 macro
     : identifier (LP primaryExpression (',' primaryExpression)* RP)?
+    | NS_UNAVAILABLE
+    | NS_SWIFT_NAME LP (swiftAliasExpression | swiftSelectorExpression) RP
+    | API_AVAILABLE LP apiAvailableOsVersion (',' apiAvailableOsVersion)* RP
+    | API_UNAVAILABLE LP identifier (',' identifier)* RP
+    | NS_SWIFT_UNAVAILABLE LP stringLiteral RP
+    | ATTRIBUTE LP LP clangAttribute (',' clangAttribute)* RP RP
+    ;
+
+// A list of __attribute__ are elaborated https://nshipster.com/__attribute__/
+clangAttribute
+    : identifier
+    | identifier LP clangAttributeArgument (',' clangAttributeArgument)* RP
+    ;
+    
+clangAttributeArgument
+    : identifier
+    | DECIMAL_LITERAL
+    | stringLiteral
+    | identifier '=' version
+    | identifier '=' stringLiteral
+    ;
+    
+swiftAliasExpression
+    : identifier ('.' identifier)*
+    ;
+
+swiftSelectorExpression
+    : identifier LP (swiftSelector ':')* RP
+    ;
+    
+// Swift selector may use reserved words
+swiftSelector
+    : identifier
+    | UNDERSCORE
+    | 'for'
+    ;
+
+apiAvailableOsVersion
+    : identifier LP version RP
+    ;
+    
+version
+    : FLOATING_POINT_LITERAL
+    | DECIMAL_LITERAL ('.' DECIMAL_LITERAL)*
     ;
 
 arrayInitializer
@@ -572,13 +624,12 @@ initializerList
     ;
 
 typeName
-    : specifierQualifierList abstractDeclarator?
+    : declarationSpecifiers abstractDeclarator?
     | blockType
     ;
 
 abstractDeclarator
-    : pointer abstractDeclarator?
-    | LP abstractDeclarator? RP abstractDeclaratorSuffix+
+    : LP abstractDeclarator? RP abstractDeclaratorSuffix+
     | ('[' constantExpression? ']')+
     ;
 
@@ -594,10 +645,6 @@ parameterDeclarationList
 parameterDeclaration
     : declarationSpecifiers declarator
     | 'void'
-    ;
-
-declarator
-    : pointer? directDeclarator
     ;
 
 statement
@@ -619,7 +666,7 @@ labeledStatement
     ;
 
 rangeExpression
-    :  constantExpression ('...' constantExpression)?
+    : constantExpression ('...' constantExpression)?
     ;
 
 compoundStatement
@@ -627,7 +674,7 @@ compoundStatement
     ;
 
 selectionStatement
-    : IF LP expression RP ifBody=statement (ELSE elseBody=statement)?
+    : IF LP expression RP ifBody = statement (ELSE elseBody = statement)?
     | switchStatement
     ;
 
@@ -689,26 +736,33 @@ expressions
 
 expression
     : castExpression
-
-    | expression op=(MUL | DIV | MOD) expression
-    | expression op=(ADD | SUB) expression
+    | expression op = (MUL | DIV | MOD) expression
+    | expression op = (ADD | SUB) expression
     | expression (LT LT | GT GT) expression
-    | expression op=(LE | GE | LT | GT) expression
-    | expression op=(NOTEQUAL | EQUAL) expression
-    | expression op=BITAND expression
-    | expression op=BITXOR expression
-    | expression op=BITOR expression
-    | expression op=AND expression
-    | expression op=OR expression
-
-    | expression QUESTION trueExpression=expression? COLON falseExpression=expression
+    | expression op = (LE | GE | LT | GT) expression
+    | expression op = (NOTEQUAL | EQUAL) expression
+    | expression op = BITAND expression
+    | expression op = BITXOR expression
+    | expression op = BITOR expression
+    | expression op = AND expression
+    | expression op = OR expression
+    | expression QUESTION trueExpression = expression? COLON falseExpression = expression
     | LP compoundStatement RP
-
-    | unaryExpression assignmentOperator assignmentExpression=expression
+    | unaryExpression assignmentOperator assignmentExpression = expression
     ;
 
 assignmentOperator
-    : '=' | '*=' | '/=' | '%=' | '+=' | '-=' | '<<=' | '>>=' | '&=' | '^=' | '|='
+    : '='
+    | '*='
+    | '/='
+    | '%='
+    | '+='
+    | '-='
+    | '<<='
+    | '>>='
+    | '&='
+    | '^='
+    | '|='
     ;
 
 castExpression
@@ -730,7 +784,7 @@ constantExpression
 unaryExpression
     : postfixExpression
     | SIZEOF (unaryExpression | LP typeSpecifier RP)
-    | op=(INC | DEC) unaryExpression
+    | op = (INC | DEC) unaryExpression
     | unaryOperator castExpression
     ;
 
@@ -745,14 +799,14 @@ unaryOperator
 
 postfixExpression
     : primaryExpression postfix*
-    | postfixExpression (DOT | STRUCTACCESS) identifier postfix*  // TODO: get rid of property and postfix expression.
+    | postfixExpression (DOT | STRUCTACCESS) identifier postfix* // TODO: get rid of property and postfix expression.
     ;
 
 postfix
     : LBRACK expression RBRACK
     | LP argumentExpressionList? RP
-    | LP (COMMA | macroArguments+=~RP)+ RP
-    | op=(INC | DEC)
+    | LP (COMMA | macroArguments += ~RP)+ RP
+    | op = (INC | DEC)
     ;
 
 argumentExpressionList
@@ -787,7 +841,7 @@ constant
     | ('+' | '-')? FLOATING_POINT_LITERAL
     | CHARACTER_LITERAL
     | NIL
-    | NULL
+    | NULL_
     | YES
     | NO
     | TRUE
@@ -800,7 +854,6 @@ stringLiteral
 
 identifier
     : IDENTIFIER
-
     | BOOL
     | Class
     | BYCOPY
@@ -818,7 +871,7 @@ identifier
     | ATOMIC
     | NONATOMIC
     | RETAIN
-
+    | REGISTER
     | AUTORELEASING_QUALIFIER
     | BLOCK
     | BRIDGE_RETAINED
@@ -828,16 +881,14 @@ identifier
     | DEPRECATED
     | KINDOF
     | UNUSED
-
     | NS_INLINE
     | NS_ENUM
     | NS_OPTIONS
-
+    | NS_SWIFT_NAME
     | NULL_UNSPECIFIED
     | NULLABLE
     | NONNULL
     | NULL_RESETTABLE
-
     | ASSIGN
     | COPY
     | GETTER
@@ -847,7 +898,6 @@ identifier
     | READWRITE
     | WEAK
     | UNSAFE_UNRETAINED
-
     | IB_OUTLET
     | IB_OUTLET_COLLECTION
     | IB_INSPECTABLE
